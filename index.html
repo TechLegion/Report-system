@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weekly Report System</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>Weekly Report System</h1>
+      <div class="user-info" id="userInfo">
+        <span class="user-badge" id="userBadge"></span>
+        <button type="button" class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+      <!-- Login -->
+      <div class="login-form active" id="loginForm">
+        <div id="loginMessage"></div>
+        <div class="form-group">
+          <label for="loginUsername">Username</label>
+          <input type="text" id="loginUsername" placeholder="Enter username"/>
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter password"/>
+        </div>
+        <!-- FIXED -->
+        <button type="button" class="btn" onclick="login()">Login</button>
+        <p style="text-align:center; margin-top:20px;">
+          Don’t have an account?
+          <a href="#" onclick="showRegister()">Register</a>
+        </p>
+      </div>
+
+      <!-- Register -->
+      <div class="register-form" id="registerForm">
+        <div id="registerMessage"></div>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="regFullName" />
+        </div>
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="regUsername" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="regEmail" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="regPassword" />
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" id="regConfirmPassword" />
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="regRole">
+            <option value="staff">Staff</option>
+            <option value="hod">HOD</option>
+          </select>
+        </div>
+        <!-- FIXED -->
+        <button type="button" class="btn" onclick="register()">Register</button>
+        <p style="text-align:center; margin-top:20px;">
+          Already have an account?
+          <a href="#" onclick="showLogin()">Login</a>
+        </p>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="dashboard" id="dashboard">
+        <!-- Staff Dashboard -->
+        <div id="staffDashboard">
+          <div class="tabs">
+            <button type="button" class="tab active" onclick="switchTab('submit')">Submit Report</button>
+            <button type="button" class="tab" onclick="switchTab('myreports')">My Reports</button>
+          </div>
+          <!-- Submit -->
+          <div class="tab-content active" id="submit">
+            <div id="submitMessage"></div>
+            <div class="form-group">
+              <label for="reportWeek">Week Ending</label>
+              <input type="date" id="reportWeek" />
+            </div>
+            <div class="form-group">
+              <label for="reportFile">Upload Report (PDF only)</label>
+              <input type="file" id="reportFile" accept="application/pdf" />
+            </div>
+            <!-- FIXED -->
+            <button type="button" class="btn" onclick="submitReport()">Submit Report</button>
+          </div>
+          <!-- My Reports -->
+          <div class="tab-content" id="myreports">
+            <div id="staffReports"></div>
+          </div>
+        </div>
+
+        <!-- HOD Dashboard (New Design) -->
+<div id="hodDashboard" class="hod-container" style="display:none;">
+  <!-- Sidebar -->
+  <aside class="hod-sidebar">
+    <h2>🧠 HOD Panel</h2>
+    <ul>
+      <li class="active" onclick="showHodSection('overview')">🏠 Overview</li>
+      <li onclick="showHodSection('reports')">📄 Reports</li>
+      <li onclick="showHodSection('staff')">👥 Staff</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="hod-main">
+    <!-- Overview Section -->
+    <section id="hod-overview" class="hod-section active">
+      <h2>Dashboard Overview</h2>
+      <div class="hod-stats">
+        <div class="stat-card">
+          <h3 id="hodTotal">0</h3>
+          <p>Total Reports</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="hodApproved">0</h3>
+          <p>Approved</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="hodPending">0</h3>
+          <p>Pending</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="hodRejected">0</h3>
+          <p>Rejected</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reports Section -->
+    <section id="hod-reports" class="hod-section">
+      <h2>All Reports</h2>
+      <div id="hodReportsList"></div>
+    </section>
+
+    <!-- Staff Section -->
+    <section id="hod-staff" class="hod-section">
+      <h2>Staff Directory</h2>
+      <div id="hodStaffList"></div>
+    </section>
+  </main>
+</div>
+
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script src="main.js" defer></script>
+</body>
+</html>
