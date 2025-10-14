@@ -14,7 +14,22 @@ const projectRoot = path.join(__dirname, '..', '..');
 
 const app = express();
 
-app.use(cors({ origin: config.clientOrigin, credentials: true }));
+// CORS: allow same-origin in production and known dev origins; no credentials needed
+const allowedOrigins = [
+  config.clientOrigin,
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'http://localhost:4000',
+  'http://127.0.0.1:4000'
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // same-origin or curl
+    return callback(null, allowedOrigins.includes(origin));
+  },
+  credentials: false
+}));
 app.use(express.json());
 
 // Static serving for uploaded files

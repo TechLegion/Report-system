@@ -1,5 +1,5 @@
 // API-driven frontend
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:4000/api' : '/api';
 let authToken = localStorage.getItem('authToken') || null;
 let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
