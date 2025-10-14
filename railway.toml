@@ -4,6 +4,7 @@ buildCommand = "cd server && npm install && npx prisma generate"
 
 [nixpacks]
 providers = ["nodejs"]
+nixPkgs = ["nodejs"]
 
 [deploy]
 startCommand = "cd server && npx prisma migrate deploy && npm start"
