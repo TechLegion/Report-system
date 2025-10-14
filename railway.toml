@@ -12,3 +12,4 @@ restartPolicyMaxRetries = 10
 [env]
 NODE_ENV = "production"
 UPLOAD_DIR = "uploads"
+PORT = "4000"
