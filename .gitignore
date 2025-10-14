@@ -1,0 +1,38 @@
+# Environment
+.env
+server/.env
+*.local
+
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Build artifacts
+build/
+dist/
+server/build/
+server/dist/
+.cache/
+server/.cache/
+coverage/
+.tmp/
+
+# Uploads and generated files
+server/uploads/
+
+# Prisma local dbs (if any)
+server/prisma/*.db
+server/prisma/dev.db*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

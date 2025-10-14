@@ -7,31 +7,69 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Navbar -->
+  <nav class="navbar" role="navigation">
+    <div class="nav-brand">
+      <div class="logo-circle">WR</div>
+      <span class="brand-text">Weekly Reports</span>
+      <div class="nav-utilities">
+        <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">Theme</button>
+      </div>
+    </div>
+    <div class="nav-actions" id="userInfo" aria-live="polite">
+      <span class="user-badge" id="userBadge"></span>
+      <button type="button" class="logout-btn" onclick="logout()" aria-label="Logout">Logout</button>
+    </div>
+  </nav>
   <div class="container">
     <!-- Header -->
-    <div class="header">
+    <div class="header" role="banner">
       <h1>Weekly Report System</h1>
-      <div class="user-info" id="userInfo">
-        <span class="user-badge" id="userBadge"></span>
-        <button type="button" class="logout-btn" onclick="logout()">Logout</button>
-      </div>
+      <p class="subtitle">Submit weekly PDFs, track status, and manage approvals.</p>
     </div>
 
     <!-- Main Content -->
     <div class="content">
+      <!-- Landing -->
+      <section class="landing active" id="landingSection" aria-labelledby="landingTitle">
+        <div class="hero">
+          <h2 id="landingTitle">Streamline Weekly Reporting</h2>
+          <p class="hero-sub">Fast uploads, transparent approvals, and clear oversight for teams.</p>
+          <div class="hero-ctas">
+            <button type="button" class="btn btn-primary" onclick="showLogin()">Login</button>
+            <button type="button" class="btn" onclick="showRegister()">Create account</button>
+          </div>
+        </div>
+        <div class="features">
+          <div class="feature-card">
+            <h3>Easy Uploads</h3>
+            <p>Upload PDF reports securely in seconds.</p>
+          </div>
+          <div class="feature-card">
+            <h3>Clear Status</h3>
+            <p>Know what’s approved, pending, or rejected.</p>
+          </div>
+          <div class="feature-card">
+            <h3>HOD Dashboard</h3>
+            <p>Review and approve reports with one click.</p>
+          </div>
+        </div>
+      </section>
       <!-- Login -->
-      <div class="login-form active" id="loginForm">
+      <div class="login-form" id="loginForm" aria-labelledby="loginTitle">
         <div id="loginMessage"></div>
-        <div class="form-group">
-          <label for="loginUsername">Username</label>
-          <input type="text" id="loginUsername" placeholder="Enter username"/>
+        <h2 id="loginTitle" class="section-title">Welcome back</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="loginUsername">Username</label>
+            <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username"/>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password"/>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" placeholder="Enter password"/>
-        </div>
-        <!-- FIXED -->
-        <button type="button" class="btn" onclick="login()">Login</button>
+        <button type="button" class="btn btn-primary" onclick="login()">Login</button>
         <p style="text-align:center; margin-top:20px;">
           Don’t have an account?
           <a href="#" onclick="showRegister()">Register</a>
@@ -39,37 +77,39 @@
       </div>
 
       <!-- Register -->
-      <div class="register-form" id="registerForm">
+      <div class="register-form" id="registerForm" aria-labelledby="registerTitle">
         <div id="registerMessage"></div>
-        <div class="form-group">
-          <label>Full Name</label>
-          <input type="text" id="regFullName" />
+        <h2 id="registerTitle" class="section-title">Create your account</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="regFullName" autocomplete="name"/>
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="regUsername" autocomplete="username"/>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="regEmail" autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="regPassword" autocomplete="new-password"/>
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <input type="password" id="regConfirmPassword" autocomplete="new-password"/>
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="regRole">
+              <option value="staff">Staff</option>
+              <option value="hod">HOD</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Username</label>
-          <input type="text" id="regUsername" />
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="regEmail" />
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="regPassword" />
-        </div>
-        <div class="form-group">
-          <label>Confirm Password</label>
-          <input type="password" id="regConfirmPassword" />
-        </div>
-        <div class="form-group">
-          <label>Role</label>
-          <select id="regRole">
-            <option value="staff">Staff</option>
-            <option value="hod">HOD</option>
-          </select>
-        </div>
-        <!-- FIXED -->
-        <button type="button" class="btn" onclick="register()">Register</button>
+        <button type="button" class="btn btn-primary" onclick="register()">Register</button>
         <p style="text-align:center; margin-top:20px;">
           Already have an account?
           <a href="#" onclick="showLogin()">Login</a>
@@ -87,20 +127,21 @@
           <!-- Submit -->
           <div class="tab-content active" id="submit">
             <div id="submitMessage"></div>
-            <div class="form-group">
-              <label for="reportWeek">Week Ending</label>
-              <input type="date" id="reportWeek" />
+            <div class="form-row">
+              <div class="form-group">
+                <label for="reportWeek">Week Ending</label>
+                <input type="date" id="reportWeek" />
+              </div>
+              <div class="form-group">
+                <label for="reportFile">Upload Report (PDF only)</label>
+                <input type="file" id="reportFile" accept="application/pdf" />
+              </div>
             </div>
-            <div class="form-group">
-              <label for="reportFile">Upload Report (PDF only)</label>
-              <input type="file" id="reportFile" accept="application/pdf" />
-            </div>
-            <!-- FIXED -->
-            <button type="button" class="btn" onclick="submitReport()">Submit Report</button>
+            <button type="button" class="btn btn-primary" onclick="submitReport()">Submit Report</button>
           </div>
           <!-- My Reports -->
           <div class="tab-content" id="myreports">
-            <div id="staffReports"></div>
+            <div id="staffReports" class="cards-grid"></div>
           </div>
         </div>
 
@@ -145,13 +186,13 @@
     <!-- Reports Section -->
     <section id="hod-reports" class="hod-section">
       <h2>All Reports</h2>
-      <div id="hodReportsList"></div>
+      <div id="hodReportsList" class="cards-grid"></div>
     </section>
 
     <!-- Staff Section -->
     <section id="hod-staff" class="hod-section">
       <h2>Staff Directory</h2>
-      <div id="hodStaffList"></div>
+      <div id="hodStaffList" class="cards-grid"></div>
     </section>
   </main>
 </div>
@@ -161,5 +202,7 @@
 
   <!-- Script -->
   <script src="main.js" defer></script>
+  <!-- Toasts & Loader -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 </body>
 </html>

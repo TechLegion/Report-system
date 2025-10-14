@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STAFF
+  HOD
+}
+
+enum ReportStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  reports      Report[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Report {
+  id            Int           @id @default(autoincrement())
+  weekEnding    DateTime
+  fileName      String
+  filePath      String
+  status        ReportStatus  @default(SUBMITTED)
+  submittedDate DateTime      @default(now())
+  staff         User          @relation(fields: [staffId], references: [id])
+  staffId       Int
+}
+

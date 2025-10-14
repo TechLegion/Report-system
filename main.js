@@ -1,19 +1,46 @@
-// Demo storage
-let currentUser = null;
-let users = {
-  'john': { password: '12345', role: 'staff', name: 'John Doe', email: 'john@mail.com' },
-  'admin': { password: 'admin123', role: 'hod', name: 'Boss Man', email: 'admin@mail.com' }
-};
-let reports = [];
+// API-driven frontend
+const API_BASE = 'http://localhost:4000/api';
+let authToken = localStorage.getItem('authToken') || null;
+let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
-/* ===== Auth ===== */
+function setSession(token, user) {
+  authToken = token;
+  currentUser = user;
+  if (token) localStorage.setItem('authToken', token); else localStorage.removeItem('authToken');
+  if (user) localStorage.setItem('currentUser', JSON.stringify(user)); else localStorage.removeItem('currentUser');
+}
+
+async function apiFetch(path, options = {}) {
+  const headers = options.headers || {};
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const controller = new AbortController();
+  const timeoutMs = options.timeoutMs || 15000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+  const isJson = res.headers.get('content-type')?.includes('application/json');
+  const data = isJson ? await res.json() : null;
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data;
+}
+
+/* ===== UI helpers ===== */
 function showLogin() {
+  document.getElementById('landingSection').classList.remove('active');
   document.getElementById('loginForm').classList.add('active');
   document.getElementById('registerForm').classList.remove('active');
   clearMessages();
 }
 
 function showRegister() {
+  document.getElementById('landingSection').classList.remove('active');
   document.getElementById('registerForm').classList.add('active');
   document.getElementById('loginForm').classList.remove('active');
   clearMessages();
@@ -22,71 +49,113 @@ function showRegister() {
 function clearMessages() {
   document.getElementById('loginMessage').innerHTML = '';
   document.getElementById('registerMessage').innerHTML = '';
+  const s = document.getElementById('submitMessage');
+  if (s) s.innerHTML = '';
 }
 
-function register() {
+function showMessage(containerId, text, type) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = `<div class="${type}-message">${text}</div>`;
+  setTimeout(() => (container.innerHTML = ''), 3000);
+}
+
+// Toasts & Loader
+function showToast(message, kind = 'success') {
+  const c = document.getElementById('toastContainer');
+  if (!c) return;
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  el.textContent = message;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function setLoading(_isLoading) { /* no-op */ }
+
+// Theme handling
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}
+
+function toggleTheme() {
+  const current = localStorage.getItem('theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+/* ===== Auth ===== */
+async function register() {
   const name = document.getElementById('regFullName').value.trim();
   const username = document.getElementById('regUsername').value.trim();
   const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPassword').value;
+  const password = document.getElementById('regPassword').value;
   const confirm = document.getElementById('regConfirmPassword').value;
   const role = document.getElementById('regRole').value;
 
-  if (!name || !username || !email || !pass || !confirm) {
+  if (!name || !username || !email || !password || !confirm) {
     showMessage('registerMessage', 'All fields are required', 'error');
     return;
   }
-  if (pass !== confirm) {
+  if (password !== confirm) {
     showMessage('registerMessage', 'Passwords do not match', 'error');
     return;
   }
-  if (users[username]) {
-    showMessage('registerMessage', 'Username already exists', 'error');
-    return;
+  try {
+    setLoading(true);
+    await apiFetch('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, username, email, password, role })
+    });
+    showMessage('registerMessage', 'Registration successful! Please login.', 'success');
+    showToast('Registration successful', 'success');
+    setTimeout(() => showLogin(), 1200);
+  } catch (e) {
+    showMessage('registerMessage', e.message, 'error');
+    showToast(e.message, 'error');
+  } finally {
+    setLoading(false);
   }
-
-  users[username] = { password: pass, role, name, email };
-  showMessage('registerMessage', 'Registration successful! Please login.', 'success');
-
-  setTimeout(() => {
-    showLogin();
-  }, 2000);
 }
 
-function login() {
+async function login() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
-
   if (!username || !password) {
     showMessage('loginMessage', 'Enter username and password', 'error');
     return;
   }
-
-  if (users[username] && users[username].password === password) {
-    currentUser = { ...users[username], username };
+  try {
+    setLoading(true);
+    const data = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+    setSession(data.token, data.user);
     document.getElementById('loginForm').classList.remove('active');
     document.getElementById('registerForm').classList.remove('active');
     document.getElementById('dashboard').classList.add('active');
     document.getElementById('userInfo').style.display = 'flex';
-    document.getElementById('userBadge').textContent = `${currentUser.name} (${currentUser.role})`;
+    document.getElementById('userBadge').textContent = `${currentUser.name} (${currentUser.role.toLowerCase()})`;
 
-    if (currentUser.role === 'staff') {
+    if (currentUser.role === 'STAFF') {
       document.getElementById('staffDashboard').style.display = 'block';
       document.getElementById('hodDashboard').style.display = 'none';
-      loadStaffReports();
-    } else if (currentUser.role === 'hod') {
-  document.getElementById('staffDashboard').style.display = 'none';
-  document.getElementById('dashboard').classList.remove('active');
-  loadHodDashboard();
-}
-
-  } else {
-    showMessage('loginMessage', 'Invalid login details', 'error');
+      await loadStaffReports();
+    } else if (currentUser.role === 'HOD') {
+      document.getElementById('staffDashboard').style.display = 'none';
+      await loadHodDashboard();
+    }
+    showToast('Welcome back!', 'success');
+  } catch (e) {
+    showMessage('loginMessage', e.message, 'error');
+    showToast(e.message, 'error');
+  } finally {
+    setLoading(false);
   }
 }
 
 function logout() {
-  currentUser = null;
+  setSession(null, null);
   document.getElementById('dashboard').classList.remove('active');
   document.getElementById('loginForm').classList.add('active');
   document.getElementById('userInfo').style.display = 'none';
@@ -101,158 +170,173 @@ function switchTab(tabId) {
   event.target.classList.add('active');
   document.getElementById(tabId).classList.add('active');
 
-  if (tabId === "myreports") loadStaffReports();
-  if (tabId === "allreports") loadAllReports();
+  if (tabId === 'myreports') loadStaffReports();
 }
 
-/* ===== Reports ===== */
-function submitReport() {
+/* ===== Reports (Staff) ===== */
+async function submitReport() {
   const weekEnding = document.getElementById('reportWeek').value;
   const fileInput = document.getElementById('reportFile');
   const file = fileInput.files[0];
-
   if (!weekEnding || !file) {
     showMessage('submitMessage', 'Please select week ending and upload PDF', 'error');
     return;
   }
-  if (file.type !== "application/pdf") {
+  if (file.type !== 'application/pdf') {
     showMessage('submitMessage', 'Only PDF files allowed', 'error');
     return;
   }
-
-  const pdfUrl = URL.createObjectURL(file);
-
-  reports.push({
-    id: reports.length + 1,
-    staff: currentUser.username,
-    weekEnding,
-    fileName: file.name,
-    pdfUrl,
-    status: "submitted",
-    submittedDate: new Date().toISOString().split('T')[0]
-  });
-
-  showMessage('submitMessage', 'Report uploaded successfully!', 'success');
-  fileInput.value = '';
+  const form = new FormData();
+  form.append('weekEnding', weekEnding);
+  form.append('file', file);
+  try {
+    setLoading(true);
+    await apiFetch('/reports', { method: 'POST', body: form });
+    showMessage('submitMessage', 'Report uploaded successfully!', 'success');
+    showToast('Report uploaded', 'success');
+    fileInput.value = '';
+    await loadStaffReports();
+  } catch (e) {
+    showMessage('submitMessage', e.message, 'error');
+    showToast(e.message, 'error');
+  } finally {
+    setLoading(false);
+  }
 }
 
-function loadStaffReports() {
-  const myReports = reports.filter(r => r.staff === currentUser.username);
+async function loadStaffReports() {
   const container = document.getElementById('staffReports');
-  if (!myReports.length) {
-    container.innerHTML = "<p>No reports yet.</p>";
-    return;
-  }
-  container.innerHTML = myReports.map(r => `
-  <div class="report-card">
-    <div class="report-header">
-      <h3>Week Ending: ${r.weekEnding}</h3>
-      <span class="status-badge status-${r.status}">${r.status}</span>
-    </div>
-    <a href="${r.pdfUrl}" target="_blank" class="btn">View ${r.fileName}</a>
-  </div>
-`).join('');
-
-}
-
-function loadAllReports() {
-  const container = document.getElementById('allReportsList');
-  if (!reports.length) {
-    container.innerHTML = "<p>No reports submitted yet.</p>";
-    return;
-  }
-  container.innerHTML = reports.map(r => `
-  <div class="report-card">
-    <div class="report-header">
-      <div>
-        <h3>${users[r.staff]?.name || r.staff}</h3>
-        <p>Week Ending: ${r.weekEnding}</p>
+  try {
+    const items = await apiFetch('/reports/mine');
+    if (!items.length) {
+      container.innerHTML = '<p>No reports yet.</p>';
+      return;
+    }
+    container.innerHTML = items.map(r => `
+      <div class="report-card">
+        <div class="report-header">
+          <h3>Week Ending: ${new Date(r.weekEnding).toISOString().split('T')[0]}</h3>
+          <span class="status-badge status-${r.status.toLowerCase()}">${r.status.toLowerCase()}</span>
+        </div>
+        <a href="${r.filePath}" target="_blank" class="btn">View ${r.fileName}</a>
       </div>
-      <span class="status-badge status-${r.status}">${r.status}</span>
-    </div>
-    <a href="${r.pdfUrl}" target="_blank" class="btn">Download ${r.fileName}</a>
-  </div>
-`).join('');
-
+    `).join('');
+  } catch (e) {
+    container.innerHTML = `<p class="error-message">${e.message}</p>`;
+  }
 }
 
-/* ===== Helpers ===== */
-function showMessage(containerId, text, type) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = `<div class="${type}-message">${text}</div>`;
-  setTimeout(() => (container.innerHTML = ""), 3000);
-}
-
-/* ===== NEW HOD PANEL FUNCTIONS ===== */
-
+/* ===== HOD Panel ===== */
 function showHodSection(sectionId) {
   document.querySelectorAll('.hod-section').forEach(s => s.classList.remove('active'));
   document.getElementById(`hod-${sectionId}`).classList.add('active');
-
   document.querySelectorAll('.hod-sidebar li').forEach(li => li.classList.remove('active'));
   event.target.classList.add('active');
 }
 
-// When HOD logs in, populate dashboard
-function loadHodDashboard() {
+async function loadHodDashboard() {
+  document.getElementById('dashboard').classList.add('active');
   document.getElementById('hodDashboard').style.display = 'flex';
-  updateHodStats();
-  loadHodReports();
-  loadHodStaff();
+  setLoading(true);
+  try {
+    const tasks = [updateHodStats(), loadHodReports(), loadHodStaff()];
+    const all = Promise.allSettled(tasks);
+    const timeout = new Promise(resolve => setTimeout(resolve, 8000));
+    await Promise.race([all, timeout]);
+  } finally {
+    setLoading(false);
+  }
 }
 
-function updateHodStats() {
-  document.getElementById('hodTotal').textContent = reports.length;
-  document.getElementById('hodApproved').textContent = reports.filter(r => r.status === 'approved').length;
-  document.getElementById('hodPending').textContent = reports.filter(r => r.status === 'submitted').length;
-  document.getElementById('hodRejected').textContent = reports.filter(r => r.status === 'rejected').length;
+async function updateHodStats() {
+  try {
+    const items = await apiFetch('/hod/reports');
+    const total = items.length;
+    const approved = items.filter(r => r.status === 'APPROVED').length;
+    const rejected = items.filter(r => r.status === 'REJECTED').length;
+    const pending = items.filter(r => r.status === 'SUBMITTED').length;
+    document.getElementById('hodTotal').textContent = total;
+    document.getElementById('hodApproved').textContent = approved;
+    document.getElementById('hodPending').textContent = pending;
+    document.getElementById('hodRejected').textContent = rejected;
+  } catch (_) {}
 }
 
-function loadHodReports() {
+async function loadHodReports() {
   const container = document.getElementById('hodReportsList');
-  if (!reports.length) {
-    container.innerHTML = "<p>No reports yet.</p>";
-    return;
-  }
-  container.innerHTML = reports.map(r => `
-    <div class="hod-report-card">
-      <h4>${users[r.staff]?.name || r.staff}</h4>
-      <p>Week Ending: ${r.weekEnding}</p>
-      <div>
-        <button class="btn" onclick="approveReport(${r.id})">Approve</button>
-        <button class="btn" onclick="rejectReport(${r.id})">Reject</button>
-        <a href="${r.pdfUrl}" target="_blank" class="btn">View</a>
+  try {
+    const items = await apiFetch('/hod/reports');
+    if (!items.length) {
+      container.innerHTML = '<p>No reports yet.</p>';
+      return;
+    }
+    container.innerHTML = items.map(r => `
+      <div class="hod-report-card">
+        <h4>${r.staff?.name || r.staffId}</h4>
+        <p>Week Ending: ${new Date(r.weekEnding).toISOString().split('T')[0]}</p>
+        <div>
+          <button class="btn" onclick="approveReport(${r.id})">Approve</button>
+          <button class="btn" onclick="rejectReport(${r.id})">Reject</button>
+          <a href="${r.filePath}" target="_blank" class="btn">View</a>
+        </div>
       </div>
-    </div>
-  `).join('');
-}
-
-function loadHodStaff() {
-  const container = document.getElementById('hodStaffList');
-  const staffUsers = Object.entries(users).filter(([u, info]) => info.role === 'staff');
-  if (!staffUsers.length) {
-    container.innerHTML = "<p>No staff yet.</p>";
-    return;
+    `).join('');
+  } catch (e) {
+    container.innerHTML = `<p class="error-message">${e.message}</p>`;
   }
-  container.innerHTML = staffUsers.map(([username, info]) => `
-    <div class="hod-staff-card">
-      <h4>${info.name}</h4>
-      <p>${info.email}</p>
-      <p>Reports: ${reports.filter(r => r.staff === username).length}</p>
-    </div>
-  `).join('');
 }
 
-// Update report status
-function approveReport(id) {
-  const r = reports.find(rep => rep.id === id);
-  if (r) r.status = 'approved';
-  loadHodReports();
-  updateHodStats();
+async function loadHodStaff() {
+  const container = document.getElementById('hodStaffList');
+  try {
+    const staff = await apiFetch('/hod/staff');
+    if (!staff.length) {
+      container.innerHTML = '<p>No staff yet.</p>';
+      return;
+    }
+    container.innerHTML = staff.map(s => `
+      <div class="hod-staff-card">
+        <h4>${s.name}</h4>
+        <p>${s.email}</p>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = `<p class="error-message">${e.message}</p>`;
+  }
 }
-function rejectReport(id) {
-  const r = reports.find(rep => rep.id === id);
-  if (r) r.status = 'rejected';
-  loadHodReports();
-  updateHodStats();
+
+async function approveReport(id) {
+  try {
+    await apiFetch(`/hod/reports/${id}/approve`, { method: 'POST' });
+    await Promise.all([loadHodReports(), updateHodStats()]);
+  } catch (_) {}
 }
+async function rejectReport(id) {
+  try {
+    await apiFetch(`/hod/reports/${id}/reject`, { method: 'POST' });
+    await Promise.all([loadHodReports(), updateHodStats()]);
+  } catch (_) {}
+}
+
+// Session restore
+(function init() {
+  // theme
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  applyTheme(savedTheme);
+  if (currentUser && authToken) {
+    document.getElementById('dashboard').classList.add('active');
+    document.getElementById('userInfo').style.display = 'flex';
+    document.getElementById('userBadge').textContent = `${currentUser.name} (${currentUser.role.toLowerCase()})`;
+    if (currentUser.role === 'STAFF') {
+      document.getElementById('staffDashboard').style.display = 'block';
+      loadStaffReports();
+    } else if (currentUser.role === 'HOD') {
+      document.getElementById('staffDashboard').style.display = 'none';
+      loadHodDashboard();
+    }
+  } else {
+    document.getElementById('landingSection').classList.add('active');
+    document.getElementById('loginForm').classList.remove('active');
+    document.getElementById('registerForm').classList.remove('active');
+  }
+})();
