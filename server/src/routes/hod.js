@@ -6,7 +6,19 @@ const router = Router();
 
 router.get('/reports', requireAuth, requireRole('HOD'), async (_req, res) => {
   try {
-    const items = await prisma.report.findMany({ include: { staff: true }, orderBy: { id: 'desc' } });
+    const items = await prisma.report.findMany({ 
+      include: { 
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            email: true
+          }
+        }
+      }, 
+      orderBy: { id: 'desc' } 
+    });
     res.json(items);
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch reports' });

@@ -29,6 +29,20 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+// Get all reports (for HOD to see all staff reports)
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const items = await prisma.report.findMany({ 
+      include: { staff: true }, 
+      orderBy: { id: 'desc' } 
+    });
+    res.json(items);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
+// Submit new report
 router.post('/', requireAuth, upload.single('file'), async (req, res) => {
   const { weekEnding } = req.body || {};
   if (!weekEnding || !req.file) return res.status(400).json({ error: 'Missing weekEnding or file' });
